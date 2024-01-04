@@ -1,9 +1,13 @@
+import mimetypes
+
+
+from django.http import FileResponse, HttpResponseBadRequest,HttpResponse
 from django.shortcuts import render,redirect,get_object_or_404
 
 # Create your views here.
 
-from .forms import ProductForm
-from .models import Product
+from .forms import ProductForm,ProductUpdateForm
+from .models import Product, ProductAttachment
 
 
 
@@ -36,7 +40,7 @@ def product_detail_view(request,handle= None):
     is_owner = obj.user == request.user
     context = {"object":obj}
     if is_owner:
-        form = ProductForm(request.POST or None,instance = obj)
+        form = ProductUpdateForm(request.POST or None,request.FILES or None,instance = obj)
         if form.is_valid():
             obj =  form.save(commit=False)
             obj.save()
@@ -44,3 +48,37 @@ def product_detail_view(request,handle= None):
         context['form']= form
     return render(request,'products/detail.html',context)
 
+def product_attachment_download_view(request,handle=None,pk=None):
+    # attachment = ProductAttachment.objects.all().first()
+    attachment = get_object_or_404(ProductAttachment,
+                                   product__handle=handle,pk=pk)
+    can_download = attachment.is_free or False
+    if request.user.is_authenticated:
+        can_download = True
+    if can_download is False:
+        return HttpResponseBadRequest()
+    file = attachment.file.open(mode='rb')
+    filename = attachment.file.name
+    content_type, _ = mimetypes.guess_type(filename)
+    response = FileResponse(file)
+    response['Content-Type'] = content_type or 'application/octet-stream' 
+    response['Content-Disposition'] = f'attachment;filename={filename}'
+    return response
+    # attachment = get_object_or_404(ProductAttachment,product__handle=).objects.all().first()
+
+    # if attachment is not None and attachment.file:
+    #     file = attachment.file.open(mode='rb')
+    #     can_download = attachment.is_free or False
+    #     if request.user.is_authenticated:
+    #         can_download = True
+    #     if can_download is False:
+    #         return HttpResponseBadRequest()
+    #     filename = attachment.file.name
+    #     content_type, _ = mimetypes.guess_type(filename)
+    #     response = FileResponse(file)
+    #     response['Content-Type'] = content_type or 'application/octet-stream' 
+    #     response['Content-Disposition'] = f'attachment;filename={filename}'
+    #     return response
+    # else:
+    #     # Handle the case where no attachment is found or the file is None
+    #     return HttpResponse("Attachment not found or file is missing.", status=404)
