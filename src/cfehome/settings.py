@@ -25,8 +25,9 @@ SECRET_KEY = config ("DJANGO_SECRET_KEY",default = None )
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+# ALLOWED_HOSTS = []
+#testing vercal uncomment above to run on local
+ALLOWED_HOSTS = ['.vercel.app']
 
 # Application definition
 
